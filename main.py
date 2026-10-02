@@ -21,6 +21,7 @@ def make_instance(n, q, L):
     m = math.ceil(L * Q)           # number of babies
 
     # random spots in the 1x1 square, each spot is (x, y)
+    random.seed(1234)
     daycare_pos = [(random.random(), random.random()) for _ in range(n)]
     baby_pos = [(random.random(), random.random()) for _ in range(m)]
 
