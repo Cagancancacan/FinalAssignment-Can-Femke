@@ -11,17 +11,17 @@ import random
 # ---------------------------------------------------------------
 # Step 1: the model
 # ---------------------------------------------------------------
-def make_instance(n, q, L):
+def make_instance(n, q_min, q_max, L, random_prefs=True):
     """
     n = number of daycares
     q = capacity of every daycare
     L = load (babies / total spots available)
     """
-    Q = n * q                      # total spots available
-    m = math.ceil(L * Q)           # number of babies
+    caps = [random.randint(q_min, q_max) for _ in range(n)]
+    Q = sum(caps)
+    m = math.ceil(L * Q)
 
     # random spots in the 1x1 square, each spot is (x, y)
-    random.seed(1234)
     daycare_pos = [(random.random(), random.random()) for _ in range(n)]
     baby_pos = [(random.random(), random.random()) for _ in range(m)]
 
@@ -39,15 +39,20 @@ def make_instance(n, q, L):
 
     baby_order = []   # baby_order[b] = daycares of baby b, favorite first
     baby_rank = []    # baby_rank[b][d] = 1 if d is the favorite of b, 2 if second, ...
+
     for b in range(m):
-        order = sorted(range(n), key=lambda d: dist[b][d])
+        if random_prefs:
+            order = list(range(n))  # [0, 1, 2, ..., n-1]
+            random.shuffle(order)  # put them in a random order
+        else:
+            order = sorted(range(n), key=lambda d: dist[b][d])
         rank = [0] * n
         for position, d in enumerate(order):
             rank[d] = position + 1
         baby_order.append(order)
         baby_rank.append(rank)
 
-    return {"n": n, "q": q, "m": m, "dist": dist,
+    return {"n": n, "caps": caps, "m": m, "dist": dist,
             "baby_order": baby_order, "baby_rank": baby_rank}
 
 
@@ -55,7 +60,7 @@ def make_instance(n, q, L):
 # Step 2: the measures
 # ---------------------------------------------------------------
 def evaluate(inst, match):
-    n, q, m = inst["n"], inst["q"], inst["m"]
+    n, caps, m = inst["n"], inst["caps"], inst["m"]
     dist, baby_rank = inst["dist"], inst["baby_rank"]
 
     # 1. matching size and 2. average rank
@@ -65,7 +70,7 @@ def evaluate(inst, match):
         if match[b] != -1:
             size += 1
             rank_sum += baby_rank[b][match[b]]
-    avg_rank = rank_sum / size
+            avg_rank = rank_sum / size if size > 0 else float("nan")
 
     # For each daycare: how many babies it has, and its farthest baby
     load = [0] * n
@@ -87,7 +92,7 @@ def evaluate(inst, match):
             my_rank = baby_rank[b][match[b]]
         for d in range(n):
             if baby_rank[b][d] < my_rank:
-                if load[d] < q or dist[b][d] < worst[d]:
+                if load[d] < caps[d] or dist[b][d] < worst[d]:
                     blocking += 1
 
     return size, avg_rank, blocking
@@ -98,12 +103,16 @@ def evaluate(inst, match):
 # ---------------------------------------------------------------
 def online_greedy(inst):
     """Every baby takes her favorite daycare that still has a free place."""
-    n, q, m = inst["n"], inst["q"], inst["m"]
+    n = inst["n"]
+    caps = inst["caps"]
+    m = inst["m"]
+
     load = [0] * n
     match = [-1] * m
+
     for b in range(m):                       # babies arrive one by one
         for d in inst["baby_order"][b]:      # favorite first
-            if load[d] < q:
+            if load[d] < caps[d]:
                 match[b] = d
                 load[d] += 1
                 break
@@ -113,19 +122,23 @@ def online_greedy(inst):
 # ---------------------------------------------------------------
 # Experiment: run many random worlds and take the average
 # ---------------------------------------------------------------
-def run_experiment(algorithms, n, q, L, runs=1000):
+def run_experiment(algorithms, n, q_min, q_max, L, runs=1000, random_prefs=False):
     totals = {name: [0, 0, 0] for name in algorithms}
     for _ in range(runs):
-        inst = make_instance(n, q, L)
+        inst = make_instance(n, q_min, q_max, L, random_prefs=random_prefs)
         for name, algo in algorithms.items():
             size, avg_rank, blocking = evaluate(inst, algo(inst))
-            totals[name][0] += size
+            totals[name][0] += size / inst["m"]
             totals[name][1] += avg_rank
-            totals[name][2] += blocking
+            totals[name][2] += blocking / inst["m"]
     for name in algorithms:
         size, avg_rank, blocking = [t / runs for t in totals[name]]
-        print(f"  {name:22s} size={size:6.1f}  avg_rank={avg_rank:5.2f}  blocking={blocking:6.1f}")
-
+        print(
+            f"  {name:22s} "
+            f"matched={size:6.1%}  "
+            f"avg_rank={avg_rank:5.2f}  "
+            f"blocking_per_baby={blocking:6.3f}"
+        )
 
 if __name__ == "__main__":
     random.seed(123)              # same random numbers every run
@@ -133,4 +146,4 @@ if __name__ == "__main__":
 
     for L in (0.8, 1.0, 1.25):
         print(f"\nn=10, q=8, L={L}")
-        run_experiment(algorithms, n=10, q=8, L=L)
+        run_experiment(algorithms, n=10, q_min=8, q_max=8, L=L, random_prefs=True)
