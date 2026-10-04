@@ -119,7 +119,7 @@ def online_greedy(inst):
     return match
     
 # ---------------------------------------------------------------
-# Step 3: baseline
+# Step 4: baseline + distance threshold
 # ---------------------------------------------------------------
 def online_threshold(inst, thresh):
     """Same as greedy but a baby can only be matched to its preferred daycare if it is within the right distance. """
