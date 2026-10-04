@@ -184,9 +184,16 @@ def run_experiment(algorithms, n, q_min, q_max, L, runs=1000, random_prefs=True)
 
 if __name__ == "__main__":
     random.seed(123)              # same random numbers every run
+
     threshold = 0.2
     algorithms = {"Greedy (online)": online_greedy,
-                  "Greedy + threshold (online)": lambda inst: online_threshold(inst, threshold)}
+                  }
+
+    # Compare several distance thresholds
+    for threshold in (0.1, 0.2, 0.3, 0.4, 0.6, 1.0):
+        algorithms[f"Threshold {threshold:.1f}"] = (
+            lambda inst, t=threshold: online_threshold(inst, t)
+        )
 
     for L in (0.8, 1.0, 1.25):
         print(f"\nn=100, q_min=8, q_max=25, L={L}")
