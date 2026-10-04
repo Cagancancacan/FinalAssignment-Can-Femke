@@ -64,19 +64,27 @@ def evaluate(inst, match):
     n, caps, m = inst["n"], inst["caps"], inst["m"]
     dist, baby_rank = inst["dist"], inst["baby_rank"]
 
-    # 1. matching size and 2. average rank
+    # 1. matching size and 2. average rank, 3. average distance (how close assigned babies live to their daycares)
     size = 0
     rank_sum = 0
+    distance_sum = 0
+
     for b in range(m):
         if match[b] != -1:
             size += 1
             rank_sum += baby_rank[b][match[b]]
+            distance_sum += dist[b][match[b]]
 
     avg_rank = rank_sum / size if size > 0 else float("nan")
+    avg_distance = distance_sum / size if size > 0 else float("nan")
+
+    # Fraction of all daycare places that are filled
+    utilisation = size /sum(caps)
 
     # For each daycare: how many babies it has, and its farthest baby
     load = [0] * n
     worst = [-1] * n               # distance of its farthest baby
+
     for b in range(m):
         d = match[b]
         if d != -1:
@@ -87,6 +95,7 @@ def evaluate(inst, match):
     #    - b likes d more than her own match (or has no match), AND
     #    - d has a free place, or d likes b more than its farthest baby
     blocking = 0
+
     for b in range(m):
         if match[b] == -1:
             my_rank = n + 1        # unmatched: worse than any daycare
@@ -97,7 +106,7 @@ def evaluate(inst, match):
                 if load[d] < caps[d] or dist[b][d] < worst[d]:
                     blocking += 1
 
-    return size, avg_rank, blocking
+    return size, avg_rank, blocking, avg_distance, utilisation
 
 
 # ---------------------------------------------------------------
@@ -144,22 +153,33 @@ def online_threshold(inst, thresh):
 # ---------------------------------------------------------------
 # Experiment: run many random worlds and take the average
 # ---------------------------------------------------------------
-def run_experiment(algorithms, n, q_min, q_max, L, runs=1000, random_prefs=False):
-    totals = {name: [0, 0, 0] for name in algorithms}
+def run_experiment(algorithms, n, q_min, q_max, L, runs=1000, random_prefs=True):
+    totals = {name: [0, 0, 0, 0, 0] for name in algorithms}
+
     for _ in range(runs):
         inst = make_instance(n, q_min, q_max, L, random_prefs=random_prefs)
+
         for name, algo in algorithms.items():
-            size, avg_rank, blocking = evaluate(inst, algo(inst))
+            size, avg_rank, blocking, avg_distance, utilisation = evaluate(inst, algo(inst))
+
             totals[name][0] += size / inst["m"]
             totals[name][1] += avg_rank
             totals[name][2] += blocking / inst["m"]
+            totals[name][3] += avg_distance
+            totals[name][4] += utilisation
+
     for name in algorithms:
-        size, avg_rank, blocking = [t / runs for t in totals[name]]
+        rate, avg_rank, blocking, avg_distance, utilisation = [
+            t / runs for t in totals[name]
+        ]
+
         print(
-            f"  {name:22s} "
-            f"matched={size:6.1%}  "
+            f"  {name:28s} "
+            f"matched={rate:6.1%}  "
             f"avg_rank={avg_rank:5.2f}  "
-            f"blocking_per_baby={blocking:6.3f}"
+            f"blocking_per_baby={blocking:6.3f}  "
+            f"avg_distance={avg_distance:5.3f}  "
+            f"filled={utilisation:6.1%}"
         )
 
 if __name__ == "__main__":
