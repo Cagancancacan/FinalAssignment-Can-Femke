@@ -45,12 +45,13 @@ def make_instance(n, q_min, q_max, L, random_prefs=True):
             order = list(range(n))  # [0, 1, 2, ..., n-1]
             random.shuffle(order)  # put them in a random order
         else:
-            order = sorted(range(n), key=lambda d: dist[b][d])
+            order = sorted(range(n), key=lambda d: dist[b][d]) # we could use this in case the babies preferences are based on distance
         rank = [0] * n
+
         for position, d in enumerate(order):
             rank[d] = position + 1
-        baby_order.append(order)
-        baby_rank.append(rank)
+        baby_order.append(order) # Lists baby b's daycares from favorite to least favorite
+        baby_rank.append(rank) # Gives position of daycare d in baby b's ranking (1 is best)
 
     return {"n": n, "caps": caps, "m": m, "dist": dist,
             "baby_order": baby_order, "baby_rank": baby_rank}
@@ -70,7 +71,8 @@ def evaluate(inst, match):
         if match[b] != -1:
             size += 1
             rank_sum += baby_rank[b][match[b]]
-            avg_rank = rank_sum / size if size > 0 else float("nan")
+
+    avg_rank = rank_sum / size if size > 0 else float("nan")
 
     # For each daycare: how many babies it has, and its farthest baby
     load = [0] * n
@@ -107,8 +109,8 @@ def online_greedy(inst):
     caps = inst["caps"]
     m = inst["m"]
 
-    load = [0] * n
-    match = [-1] * m
+    load = [0] * n     # load[d] records how many babies are currently assigned to daycare d
+    match = [-1] * m   # initially all babies are unmachted and thus equal to -1
 
     for b in range(m):                       # babies arrive one by one
         for d in inst["baby_order"][b]:      # favorite first
@@ -145,5 +147,5 @@ if __name__ == "__main__":
     algorithms = {"Greedy (online)": online_greedy}
 
     for L in (0.8, 1.0, 1.25):
-        print(f"\nn=10, q=8, L={L}")
-        run_experiment(algorithms, n=10, q_min=8, q_max=8, L=L, random_prefs=True)
+        print(f"\nn=100, q_min=8, q_max=25, L={L}")
+        run_experiment(algorithms, n=100, q_min=8, q_max=25, L=L, random_prefs=True)
