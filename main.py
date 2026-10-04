@@ -117,7 +117,27 @@ def online_greedy(inst):
                 load[d] += 1
                 break
     return match
+    
+# ---------------------------------------------------------------
+# Step 3: baseline
+# ---------------------------------------------------------------
+def online_threshold(inst, thresh):
+    """Same as greedy but a baby can only be matched to its preferred daycare if it is within the right distance. """
+    n = inst["n"]
+    caps = inst["caps"]
+    m = inst["m"]
+    dist = inst["dist"]
 
+    load = [0] * n
+    match = [-1] * m
+
+    for b in range(m):                       # babies arrive one by one
+        for d in inst["baby_order"][b]:      # favorite first
+            if load[d] < caps[d] and dist[b][d] < thresh: # add dist threshold condition 
+                match[b] = d
+                load[d] += 1
+                break
+    return match
 
 # ---------------------------------------------------------------
 # Experiment: run many random worlds and take the average
@@ -142,7 +162,9 @@ def run_experiment(algorithms, n, q_min, q_max, L, runs=1000, random_prefs=False
 
 if __name__ == "__main__":
     random.seed(123)              # same random numbers every run
-    algorithms = {"Greedy (online)": online_greedy}
+    threshold = 0.2
+    algorithms = {"Greedy (online)": online_greedy,
+                  "Greedy + threshold (online)": lambda inst: online_threshold(inst, threshold)}
 
     for L in (0.8, 1.0, 1.25):
         print(f"\nn=10, q=8, L={L}")
