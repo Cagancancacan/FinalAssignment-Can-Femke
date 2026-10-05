@@ -8,6 +8,7 @@ Babies arrive in the order 0, 1, 2, ...
 import math
 import random
 
+
 # ---------------------------------------------------------------
 # Step 1: the model
 # ---------------------------------------------------------------
@@ -34,24 +35,25 @@ def make_instance(n, q_min, q_max, L, random_prefs=True):
         for d in range(n):
             dx = baby_pos[b][0] - daycare_pos[d][0]
             dy = baby_pos[b][1] - daycare_pos[d][1]
-            row.append(math.sqrt(dx**2 + dy**2) / math.sqrt(2))
+            row.append(math.sqrt(dx ** 2 + dy ** 2) / math.sqrt(2))
         dist.append(row)
 
-    baby_order = []   # baby_order[b] = daycares of baby b, favorite first
-    baby_rank = []    # baby_rank[b][d] = 1 if d is the favorite of b, 2 if second, ...
+    baby_order = []  # baby_order[b] = daycares of baby b, favorite first
+    baby_rank = []  # baby_rank[b][d] = 1 if d is the favorite of b, 2 if second, ...
 
     for b in range(m):
         if random_prefs:
             order = list(range(n))  # [0, 1, 2, ..., n-1]
             random.shuffle(order)  # put them in a random order
         else:
-            order = sorted(range(n), key=lambda d: dist[b][d]) # we could use this in case the babies preferences are based on distance
+            order = sorted(range(n), key=lambda d: dist[b][
+                d])  # we could use this in case the babies preferences are based on distance
         rank = [0] * n
 
         for position, d in enumerate(order):
             rank[d] = position + 1
-        baby_order.append(order) # Lists baby b's daycares from favorite to least favorite
-        baby_rank.append(rank) # Gives position of daycare d in baby b's ranking (1 is best)
+        baby_order.append(order)  # Lists baby b's daycares from favorite to least favorite
+        baby_rank.append(rank)  # Gives position of daycare d in baby b's ranking (1 is best)
 
     return {"n": n, "caps": caps, "m": m, "dist": dist,
             "baby_order": baby_order, "baby_rank": baby_rank}
@@ -79,11 +81,11 @@ def evaluate(inst, match):
     avg_distance = distance_sum / size if size > 0 else float("nan")
 
     # Fraction of all daycare places that are filled
-    utilisation = size /sum(caps)
+    utilisation = size / sum(caps)
 
     # For each daycare: how many babies it has, and its farthest baby
     load = [0] * n
-    worst = [-1] * n               # distance of its farthest baby
+    worst = [-1] * n  # distance of its farthest baby
 
     for b in range(m):
         d = match[b]
@@ -98,7 +100,7 @@ def evaluate(inst, match):
 
     for b in range(m):
         if match[b] == -1:
-            my_rank = n + 1        # unmatched: worse than any daycare
+            my_rank = n + 1  # unmatched: worse than any daycare
         else:
             my_rank = baby_rank[b][match[b]]
         for d in range(n):
@@ -118,17 +120,18 @@ def online_greedy(inst):
     caps = inst["caps"]
     m = inst["m"]
 
-    load = [0] * n     # load[d] records how many babies are currently assigned to daycare d
-    match = [-1] * m   # initially all babies are unmachted and thus equal to -1
+    load = [0] * n  # load[d] records how many babies are currently assigned to daycare d
+    match = [-1] * m  # initially all babies are unmachted and thus equal to -1
 
-    for b in range(m):                       # babies arrive one by one
-        for d in inst["baby_order"][b]:      # favorite first
+    for b in range(m):  # babies arrive one by one
+        for d in inst["baby_order"][b]:  # favorite first
             if load[d] < caps[d]:
                 match[b] = d
                 load[d] += 1
                 break
     return match
-    
+
+
 # ---------------------------------------------------------------
 # Step 4: baseline + distance threshold
 # ---------------------------------------------------------------
@@ -142,13 +145,14 @@ def online_threshold(inst, thresh):
     load = [0] * n
     match = [-1] * m
 
-    for b in range(m):                       # babies arrive one by one
-        for d in inst["baby_order"][b]:      # favorite first
-            if load[d] < caps[d] and dist[b][d] < thresh: # add dist threshold condition 
+    for b in range(m):  # babies arrive one by one
+        for d in inst["baby_order"][b]:  # favorite first
+            if load[d] < caps[d] and dist[b][d] < thresh:  # add dist threshold condition
                 match[b] = d
                 load[d] += 1
                 break
     return match
+
 
 # ---------------------------------------------------------------
 # Experiment: run many random worlds and take the average
@@ -164,7 +168,7 @@ def run_experiment(algorithms, n, q_min, q_max, L, runs=1000, random_prefs=True)
 
             totals[name][0] += size / inst["m"]
             totals[name][1] += avg_rank
-            totals[name][2] += blocking / inst["m"]
+            totals[name][2] += blocking
             totals[name][3] += avg_distance
             totals[name][4] += utilisation
 
@@ -177,13 +181,13 @@ def run_experiment(algorithms, n, q_min, q_max, L, runs=1000, random_prefs=True)
             f"  {name:28s} "
             f"matched={rate:6.1%}  "
             f"avg_rank={avg_rank:5.2f}  "
-            f"blocking_per_baby={blocking:6.3f}  "
+            f"blocking_pairs={blocking:9.1f}  "
             f"avg_distance={avg_distance:5.3f}  "
             f"filled={utilisation:6.1%}"
         )
 
 if __name__ == "__main__":
-    random.seed(123)              # same random numbers every run
+    random.seed(123)  # same random numbers every run
 
     threshold = 0.2
     algorithms = {"Greedy (online)": online_greedy,
