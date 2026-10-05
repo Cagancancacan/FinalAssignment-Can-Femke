@@ -12,11 +12,18 @@ import random
 # ---------------------------------------------------------------
 # Step 1: the model
 # ---------------------------------------------------------------
-def make_instance(n, q_min, q_max, L, random_prefs=True, t_min=0.1, t_max=0.5):
+def make_instance(n, q_min, q_max, L, random_prefs=True, t_min=0.1, t_max=0.5, pref_noise=0.1):
     """
     n = number of daycares
     q = capacity of every daycare
     L = load (babies / total spots available)
+    pref_noise = only used when random_prefs=False. Standard deviation of
+                 random noise added to distance before sorting, so that
+                 preferences are correlated with distance but not a
+                 perfect sort by it.
+                 0.0  -> preferences are exactly sorted by distance
+                 small (e.g. 0.05) -> mostly distance-sorted, occasional swaps
+                 large (e.g. 1.0+) -> noise drowns out distance, ~random order
     """
     caps = [random.randint(q_min, q_max) for _ in range(n)]
     Q = sum(caps)
@@ -48,8 +55,7 @@ def make_instance(n, q_min, q_max, L, random_prefs=True, t_min=0.1, t_max=0.5):
             order = list(range(n))  # [0, 1, 2, ..., n-1]
             random.shuffle(order)  # put them in a random order
         else:
-            order = sorted(range(n), key=lambda d: dist[b][
-                d])  # we could use this in case the babies preferences are based on distance
+            order = sorted(range(n), key=lambda d: dist[b][d] + random.gauss(0, pref_noise))  # we could use this in case the babies preferences are based on distance
         rank = [0] * n
 
         for position, d in enumerate(order):
@@ -265,4 +271,4 @@ if __name__ == "__main__":
 
     for L in (0.8, 1.0, 1.25):
         print(f"\nn=100, q_min=8, q_max=25, L={L}")
-        run_experiment(algorithms, n=100, q_min=8, q_max=25, L=L, random_prefs=True)
+        run_experiment(algorithms, n=100, q_min=8, q_max=25, L=L, random_prefs=False)
