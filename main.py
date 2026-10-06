@@ -112,7 +112,7 @@ def evaluate(inst, match):
 
 
 # ---------------------------------------------------------------
-# Step 3: baseline
+# Step 3a: baseline, baby-oriented greedy
 # ---------------------------------------------------------------
 def online_greedy(inst):
     """Every baby takes her favorite daycare that still has a free place."""
@@ -131,9 +131,40 @@ def online_greedy(inst):
                 break
     return match
 
+# ---------------------------------------------------------------
+# Step 3b: baseline, daycare-oriented greedy
+# ---------------------------------------------------------------
+def online_daycare_greedy(inst):
+    """Every baby goes to the closest daycare that still has space."""
+    n = inst["n"]
+    caps = inst["caps"]
+    m = inst["m"]
+    dist = inst["dist"]
+
+    load = [0] * n
+    match = [-1] * m
+
+    for b in range(m):
+        best_daycare = -1
+        best_distance = float("inf")
+
+        # Find the closest daycare with a free place
+        for d in range(n):
+            if load[d] < caps[d]:
+                if dist[b][d] < best_distance:
+                    best_daycare = d
+                    best_distance = dist[b][d]
+
+        # Assign the baby if a daycare has space
+        if best_daycare != -1:
+            match[b] = best_daycare
+            load[best_daycare] += 1
+
+    return match
+
 
 # ---------------------------------------------------------------
-# Step 4: baseline + distance threshold
+# Step 4: greedy baby + distance threshold
 # ---------------------------------------------------------------
 def online_threshold(inst, thresh):
     """Same as greedy but a baby can only be matched to its preferred daycare if it is within the right distance. """
@@ -187,18 +218,41 @@ def run_experiment(algorithms, n, q_min, q_max, L, runs=1000, random_prefs=True)
         )
 
 if __name__ == "__main__":
-    random.seed(123)  # same random numbers every run
+    random.seed(123)  # Makes the experiment reproducible
 
-    threshold = 0.2
-    algorithms = {"Greedy (online)": online_greedy,
-                  }
+    n = 100
+    q_min = 8
+    q_max = 25
+    runs = 100       # Increase to 1000 for the final experiments
 
-    # Compare several distance thresholds
-    for threshold in (0.1, 0.2, 0.3, 0.4, 0.6, 1.0):
-        algorithms[f"Threshold {threshold:.1f}"] = (
+    algorithms = {
+        "Baby-oriented Greedy": online_greedy,
+        "Daycare-oriented Greedy": online_daycare_greedy,
+    }
+
+    # We evaluate distance thresholds from 0.05 to 1.00 in increments of 0.05.
+    thresholds = [round(i / 20, 2) for i in range(1, 21)]
+
+    for threshold in thresholds:
+        algorithms[f"Threshold {threshold:.2f}"] = (
             lambda inst, t=threshold: online_threshold(inst, t)
         )
 
-    for L in (0.8, 1.0, 1.25):
-        print(f"\nn=100, q_min=8, q_max=25, L={L}")
-        run_experiment(algorithms, n=100, q_min=8, q_max=25, L=L, random_prefs=True)
+    # Low demand, balanced demand and excess demand
+    loads = (0.50, 0.80, 0.90, 1.00, 1.10, 1.25, 1.50, 2.00)
+
+    for L in loads:
+        print(
+            f"\nn={n}, q_min={q_min}, q_max={q_max}, "
+            f"L={L:.2f}, runs={runs}"
+        )
+
+        run_experiment(
+            algorithms,
+            n=n,
+            q_min=q_min,
+            q_max=q_max,
+            L=L,
+            runs=runs,
+            random_prefs=True,
+        )
