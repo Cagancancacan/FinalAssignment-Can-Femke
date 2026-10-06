@@ -7,7 +7,8 @@ Babies arrive in the order 0, 1, 2, ...
 """
 import math
 import random
-
+import csv
+import os
 
 # ---------------------------------------------------------------
 # Step 1: the model
@@ -203,6 +204,7 @@ def run_experiment(algorithms, n, q_min, q_max, L, runs=1000, random_prefs=True)
             totals[name][3] += avg_distance
             totals[name][4] += utilisation
 
+    rows = []
     for name in algorithms:
         rate, avg_rank, blocking, avg_distance, utilisation = [
             t / runs for t in totals[name]
@@ -217,11 +219,33 @@ def run_experiment(algorithms, n, q_min, q_max, L, runs=1000, random_prefs=True)
             f"filled={utilisation:6.1%}"
         )
 
+        rows.append({
+            "algorithm": name,
+            "n": n,
+            "q_min": q_min,
+            "q_max": q_max,
+            "L": L,
+            "runs": runs,
+            "matched_rate": rate,
+            "avg_rank": avg_rank,
+            "blocking_pairs": blocking,
+            "avg_distance": avg_distance,
+            "utilisation": utilisation,
+        })
+
+    if csv_path is not None:
+        write_header = not os.path.exists(csv_path)
+        with open(csv_path, "a", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=rows[0].keys())
+            if write_header:
+                writer.writeheader()
+            writer.writerows(rows)
+
 if __name__ == "__main__":
     random.seed(123)  # Makes the experiment reproducible
 
     n = 100
-    q_min = 8
+    q_min = 0
     q_max = 25
     runs = 100       # Increase to 1000 for the final experiments
 
@@ -240,6 +264,10 @@ if __name__ == "__main__":
 
     # Low demand, balanced demand and excess demand
     loads = (0.50, 0.80, 0.90, 1.00, 1.10, 1.25, 1.50, 2.00)
+
+    csv_path = "results.csv"
+    if os.path.exists(csv_path):
+        os.remove(csv_path)  # start each run with a clean file, not stale appended rows
 
     for L in loads:
         print(
