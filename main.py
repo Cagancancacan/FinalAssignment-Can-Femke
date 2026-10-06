@@ -245,7 +245,7 @@ if __name__ == "__main__":
     random.seed(123)  # Makes the experiment reproducible
 
     n = 100
-    q_min = 0
+    q_min = 8
     q_max = 25
     runs = 100       # Increase to 1000 for the final experiments
 
