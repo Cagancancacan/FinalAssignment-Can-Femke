@@ -12,15 +12,24 @@ import random
 # ---------------------------------------------------------------
 # Step 1: the model
 # ---------------------------------------------------------------
-def make_instance(n, q_min, q_max, L, random_prefs=True):
+def make_instance(n, q_min, q_max, L, random_prefs=True, t_min=0.1, t_max=0.5, pref_noise=0.1):
     """
     n = number of daycares
     q = capacity of every daycare
     L = load (babies / total spots available)
+    pref_noise = only used when random_prefs=False. Standard deviation of
+                 random noise added to distance before sorting, so that
+                 preferences are correlated with distance but not a
+                 perfect sort by it.
+                 0.0  -> preferences are exactly sorted by distance
+                 small (e.g. 0.05) -> mostly distance-sorted, occasional swaps
+                 large (e.g. 1.0+) -> noise drowns out distance, ~random order
     """
     caps = [random.randint(q_min, q_max) for _ in range(n)]
     Q = sum(caps)
     m = math.ceil(L * Q)
+    # create threshold for each daycare (for when we use personal distance thresholds)
+    thresholds = [random.uniform(t_min, t_max) for _ in range(n)]
 
     # random spots in the 1x1 square, each spot is (x, y)
     daycare_pos = [(random.random(), random.random()) for _ in range(n)]
@@ -46,8 +55,7 @@ def make_instance(n, q_min, q_max, L, random_prefs=True):
             order = list(range(n))  # [0, 1, 2, ..., n-1]
             random.shuffle(order)  # put them in a random order
         else:
-            order = sorted(range(n), key=lambda d: dist[b][
-                d])  # we could use this in case the babies preferences are based on distance
+            order = sorted(range(n), key=lambda d: dist[b][d] + random.gauss(0, pref_noise))  # we could use this in case the babies preferences are based on distance
         rank = [0] * n
 
         for position, d in enumerate(order):
@@ -56,7 +64,7 @@ def make_instance(n, q_min, q_max, L, random_prefs=True):
         baby_rank.append(rank)  # Gives position of daycare d in baby b's ranking (1 is best)
 
     return {"n": n, "caps": caps, "m": m, "dist": dist,
-            "baby_order": baby_order, "baby_rank": baby_rank}
+            "baby_order": baby_order, "baby_rank": baby_rank, "thresholds": thresholds,}
 
 
 # ---------------------------------------------------------------
@@ -65,6 +73,7 @@ def make_instance(n, q_min, q_max, L, random_prefs=True):
 def evaluate(inst, match):
     n, caps, m = inst["n"], inst["caps"], inst["m"]
     dist, baby_rank = inst["dist"], inst["baby_rank"]
+    thresholds = inst["thresholds"]
 
     # 1. matching size and 2. average rank, 3. average distance (how close assigned babies live to their daycares)
     size = 0
@@ -104,7 +113,7 @@ def evaluate(inst, match):
         else:
             my_rank = baby_rank[b][match[b]]
         for d in range(n):
-            if baby_rank[b][d] < my_rank:
+            if baby_rank[b][d] < my_rank and dist[b][d] < thresholds[d]:
                 if load[d] < caps[d] or dist[b][d] < worst[d]:
                     blocking += 1
 
@@ -112,7 +121,10 @@ def evaluate(inst, match):
 
 
 # ---------------------------------------------------------------
-# Step 3: baseline
+# Step 3: algorithms
+# ---------------------------------------------------------------
+# ---------------------------------------------------------------
+# Algo: baseline greedy
 # ---------------------------------------------------------------
 def online_greedy(inst):
     """Every baby takes her favorite daycare that still has a free place."""
@@ -133,10 +145,10 @@ def online_greedy(inst):
 
 
 # ---------------------------------------------------------------
-# Step 4: baseline + distance threshold
+# Algo: baseline + global distance threshold
 # ---------------------------------------------------------------
 def online_threshold(inst, thresh):
-    """Same as greedy but a baby can only be matched to its preferred daycare if it is within the right distance. """
+    """Same as greedy, but a baby can only be matched to its preferred daycare if it is within the right distance. """
     n = inst["n"]
     caps = inst["caps"]
     m = inst["m"]
@@ -153,11 +165,66 @@ def online_threshold(inst, thresh):
                 break
     return match
 
+# ---------------------------------------------------------------
+# Algo: baseline + personal distance thresholds
+# ---------------------------------------------------------------
+def online_threshold_per_daycare(inst):
+    """Same online threshold, but daycares now have personalised distance thresholds. """
+    n = inst["n"]
+    caps = inst["caps"]
+    m = inst["m"]
+    dist = inst["dist"]
+    thresholds = inst["thresholds"]
+
+    load = [0] * n
+    match = [-1] * m
+
+    for b in range(m):                       # babies arrive one by one
+        for d in inst["baby_order"][b]:      # favorite first
+            if load[d] < caps[d] and dist[b][d] < thresholds[d]:
+                match[b] = d
+                load[d] += 1
+                break
+    return match
+
+# ---------------------------------------------------------------
+# Algo: baseline + shrinking distance thresholds
+# ---------------------------------------------------------------
+def online_shrinking_capacity(inst, power=1.0):
+    """
+    Same idea as online_greedy_threshold_per_daycare, but a daycare's
+    threshold shrinks as it fills up: it starts lenient (full threshold)
+    and becomes pickier the fewer free spots it has left, only taking
+    unusually close babies near the end.
+
+    power = 1   -> threshold shrinks linearly with remaining capacity
+    power > 1   -> daycare stays lenient for longer, then gets picky fast
+    power < 1   -> daycare gets picky early, then stays strict
+    """
+    n = inst["n"]
+    caps = inst["caps"]
+    m = inst["m"]
+    dist = inst["dist"]
+    thresholds = inst["thresholds"]
+
+    load = [0] * n
+    match = [-1] * m
+
+    for b in range(m):                       # babies arrive one by one
+        for d in inst["baby_order"][b]:      # favorite first
+            if load[d] < caps[d]:
+                remaining_frac = (caps[d] - load[d]) / caps[d]
+                eff_threshold = thresholds[d] * (remaining_frac ** power)
+                if dist[b][d] < eff_threshold:
+                    match[b] = d
+                    load[d] += 1
+                    break
+    return match
 
 # ---------------------------------------------------------------
 # Experiment: run many random worlds and take the average
 # ---------------------------------------------------------------
-def run_experiment(algorithms, n, q_min, q_max, L, runs=1000, random_prefs=True):
+def run_experiment(algorithms, n, q_min, q_max, L, runs=10, random_prefs=True):
     totals = {name: [0, 0, 0, 0, 0] for name in algorithms}
 
     for _ in range(runs):
@@ -191,14 +258,17 @@ if __name__ == "__main__":
 
     threshold = 0.2
     algorithms = {"Greedy (online)": online_greedy,
-                  }
+                "Greedy + threshold (online)": lambda inst: online_threshold(inst, threshold),
+                "Greedy w/ per-daycare thr.": online_threshold_per_daycare,
+                "Capacity-aware (p=1)": online_shrinking_capacity,
+                }
 
     # Compare several distance thresholds
-    for threshold in (0.1, 0.2, 0.3, 0.4, 0.6, 1.0):
-        algorithms[f"Threshold {threshold:.1f}"] = (
-            lambda inst, t=threshold: online_threshold(inst, t)
-        )
+#    for threshold in (0.1, 0.2):
+#        algorithms[f"Threshold {threshold:.1f}"] = (
+#            lambda inst, t=threshold: online_threshold(inst, t)
+#        )
 
     for L in (0.8, 1.0, 1.25):
         print(f"\nn=100, q_min=8, q_max=25, L={L}")
-        run_experiment(algorithms, n=100, q_min=8, q_max=25, L=L, random_prefs=True)
+        run_experiment(algorithms, n=100, q_min=8, q_max=25, L=L, random_prefs=False)
