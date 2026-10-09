@@ -13,69 +13,136 @@ knitr::opts_chunk$set(echo = TRUE)
 
 For visualising the testing results
 
+Visualise data
+
 ```{r}
+library(tidyverse)
 library(ggplot2)
 library(patchwork)
 
-df <- read.csv("results.csv")
+df1 <- read_csv("results_lowq_shrink+basic.csv") %>%
+  mutate(
+    family = case_when(
+      str_detect(algorithm, "^Online Threshold")   ~ "Online Threshold",
+      str_detect(algorithm, "^Shrinking Threshold") ~ "Shrinking Threshold",
+      TRUE ~ algorithm   # the two baselines keep their own name
+    ),
+    threshold = as.numeric(str_extract(algorithm, "[0-9.]+$"))
+  )
 
-g1 <- ggplot(df, aes(x = L, y = blocking_pairs, color = algorithm)) +
-  geom_line() + geom_point()
+df2 <- read_csv("results_lowq_norand_shrink+basic.csv") %>%
+  mutate(
+    family = case_when(
+      str_detect(algorithm, "^Online Threshold")   ~ "Online Threshold",
+      str_detect(algorithm, "^Shrinking Threshold") ~ "Shrinking Threshold",
+      TRUE ~ algorithm   # the two baselines keep their own name
+    ),
+    threshold = as.numeric(str_extract(algorithm, "[0-9.]+$"))
+  )
 
-g2 <- ggplot(df, aes(x = L, y = avg_rank, color = algorithm)) +
-  geom_line() + geom_point()
+df3 <- read_csv("results_lowq_rand__moreload_shrink+basic.csv") %>%
+  mutate(
+    family = case_when(
+      str_detect(algorithm, "^Online Threshold")   ~ "Online Threshold",
+      str_detect(algorithm, "^Shrinking Threshold") ~ "Shrinking Threshold",
+      TRUE ~ algorithm   # the two baselines keep their own name
+    ),
+    threshold = as.numeric(str_extract(algorithm, "[0-9.]+$"))
+  )
 
-g3 <- ggplot(df, aes(x = L, y = avg_distance, color = algorithm)) +
-  geom_line() + geom_point()
+df4 <- read_csv("results_lowq_norand__moreload_shrink+basic.csv") %>%
+  mutate(
+    family = case_when(
+      str_detect(algorithm, "^Online Threshold")   ~ "Online Threshold",
+      str_detect(algorithm, "^Shrinking Threshold") ~ "Shrinking Threshold",
+      TRUE ~ algorithm   # the two baselines keep their own name
+    ),
+    threshold = as.numeric(str_extract(algorithm, "[0-9.]+$"))
+  )
 
-g4 <- ggplot(df, aes(x = L, y = matched_rate, color = algorithm)) +
-  geom_line() + geom_point()
 
-g1
-g2
-g3
-g4
+baselines1 <- df1 %>% filter(is.na(threshold))
+threshold_algos1 <- df1 %>% filter(!is.na(threshold))
+
+baselines2 <- df2 %>% filter(is.na(threshold))
+threshold_algos2 <- df2 %>% filter(!is.na(threshold))
+
+baselines3 <- df3 %>% filter(is.na(threshold))
+threshold_algos3 <- df3 %>% filter(!is.na(threshold))
+
+baselines4 <- df4 %>% filter(is.na(threshold))
+threshold_algos4 <- df4 %>% filter(!is.na(threshold))
 ```
 
-# No lower bouunmd in capacity
+
 
 ```{r}
-df2 <- read.csv("results1.csv")
 
-f1 <- ggplot(df2, aes(x = L, y = blocking_pairs, color = algorithm)) +
-  geom_line() + geom_point()
+plot_metric_vs_threshold <- function(metric, loads_to_show = c(0.5, 0.8, 1.0, 1.2, 1.5)) {
+  sub <- threshold_algos1 %>% filter(L %in% loads_to_show)
+  base_sub <- baselines1 %>% filter(L %in% loads_to_show)
+ 
+  ggplot(sub, aes(threshold, .data[[metric]], color = family)) +
+    geom_line(linewidth = 1) +
+    geom_hline(data = base_sub, aes(yintercept = .data[[metric]], linetype = algorithm),
+               color = "grey40") +
+    facet_wrap(~ L, scales = "free_y", labeller = label_both) +
+    labs(title = paste(metric, "vs. threshold, across load levels"),
+         linetype = "Baseline", color = "Algorithm family") +
+    theme_minimal()
+}
 
-f2 <- ggplot(df2, aes(x = L, y = avg_rank, color = algorithm)) +
-  geom_line() + geom_point()
-
-f3 <- ggplot(df2, aes(x = L, y = avg_distance, color = algorithm)) +
-  geom_line() + geom_point()
-
-f4 <- ggplot(df2, aes(x = L, y = matched_rate, color = algorithm)) +
-  geom_line() + geom_point()
-
-f1
-f2
-f3
-f4
-```
-Stacked plots
-```{r}
-g1/f1
+plot_metric_vs_threshold("blocking_pairs")
+ggsave("plot_A_blocking_vs_threshold.png", width = 10, height = 6, dpi = 150)
+ 
+plot_metric_vs_threshold("matched_rate")
+ggsave("plot_A_matched_rate_vs_threshold.png", width = 10, height = 6, dpi = 150)
 
 ```
 
+
 ```{r}
-newdf <- df[ which(df[,5]>0.75
-& df[,5]<1.3), ]
+ggplot(threshold_algos, aes(blocking_pairs, matched_rate, color = family)) +
+  geom_path(aes(group = interaction(family, L)), alpha = 0.5) +
+  geom_point(aes(size = threshold), alpha = 0.7) +
+  facet_wrap(~ L, labeller = label_both, scales = "free_x") +
+  labs(title = "Efficiency frontier: matched rate vs. blocking pairs",
+       subtitle = "each point = one threshold value, connected in increasing order") +
+  theme_minimal()
+ggsave("plot_B_tradeoff_frontier.png", width = 12, height = 7, dpi = 150)
 
-n1 <- ggplot(newdf, aes(x = L, y = blocking_pairs, color = algorithm)) +
-  geom_line() + geom_point()
+```
 
-n2 <- ggplot(newdf, aes(x = L, y = blocking_pairs, color = algorithm)) +
-  geom_line() + geom_point()
 
-n1/n2
+```{r}
+ggplot(threshold_algos, aes(threshold, L, fill = blocking_pairs)) +
+  geom_tile() +
+  facet_wrap(~ family) +
+  scale_fill_viridis_c() +
+  labs(title = "Blocking pairs across threshold and load (shared color scale)") +
+  theme_minimal()
+ggsave("plot_C_heatmap_shared_scale.png", width = 10, height = 5, dpi = 150)
+```
+```{r}
+plot_metric_vs_threshold <- function(metric, loads_to_show = c(0.5, 0.8, 1.0, 1.2, 1.5)) {
+  sub <- threshold_algos2 %>% filter(L %in% loads_to_show)
+  base_sub <- baselines2 %>% filter(L %in% loads_to_show)
+ 
+  ggplot(sub, aes(threshold, .data[[metric]], color = family)) +
+    geom_line(linewidth = 1) +
+    geom_hline(data = base_sub, aes(yintercept = .data[[metric]], linetype = algorithm),
+               color = "grey40") +
+    facet_wrap(~ L, scales = "free_y", labeller = label_both) +
+    labs(title = paste(metric, "vs. threshold, across load levels"),
+         linetype = "Baseline", color = "Algorithm family") +
+    theme_minimal()
+}
+
+plot_metric_vs_threshold("blocking_pairs")
+ggsave("plot_A_blocking_vs_threshold.png", width = 10, height = 6, dpi = 150)
+ 
+plot_metric_vs_threshold("matched_rate")
+ggsave("plot_A_matched_rate_vs_threshold.png", width = 10, height = 6, dpi = 150)
 
 ```
 
