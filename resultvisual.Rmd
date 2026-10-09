@@ -20,7 +20,7 @@ library(tidyverse)
 library(ggplot2)
 library(patchwork)
 
-df1 <- read_csv("results_lowq_shrink+basic.csv") %>%
+df1 <- read_csv("results_lowq_rand_basic.csv") %>%
   mutate(
     family = case_when(
       str_detect(algorithm, "^Online Threshold")   ~ "Online Threshold",
@@ -29,56 +29,17 @@ df1 <- read_csv("results_lowq_shrink+basic.csv") %>%
     ),
     threshold = as.numeric(str_extract(algorithm, "[0-9.]+$"))
   )
-
-df2 <- read_csv("results_lowq_norand_shrink+basic.csv") %>%
-  mutate(
-    family = case_when(
-      str_detect(algorithm, "^Online Threshold")   ~ "Online Threshold",
-      str_detect(algorithm, "^Shrinking Threshold") ~ "Shrinking Threshold",
-      TRUE ~ algorithm   # the two baselines keep their own name
-    ),
-    threshold = as.numeric(str_extract(algorithm, "[0-9.]+$"))
-  )
-
-df3 <- read_csv("results_lowq_rand__moreload_shrink+basic.csv") %>%
-  mutate(
-    family = case_when(
-      str_detect(algorithm, "^Online Threshold")   ~ "Online Threshold",
-      str_detect(algorithm, "^Shrinking Threshold") ~ "Shrinking Threshold",
-      TRUE ~ algorithm   # the two baselines keep their own name
-    ),
-    threshold = as.numeric(str_extract(algorithm, "[0-9.]+$"))
-  )
-
-df4 <- read_csv("results_lowq_norand__moreload_shrink+basic.csv") %>%
-  mutate(
-    family = case_when(
-      str_detect(algorithm, "^Online Threshold")   ~ "Online Threshold",
-      str_detect(algorithm, "^Shrinking Threshold") ~ "Shrinking Threshold",
-      TRUE ~ algorithm   # the two baselines keep their own name
-    ),
-    threshold = as.numeric(str_extract(algorithm, "[0-9.]+$"))
-  )
-
 
 baselines1 <- df1 %>% filter(is.na(threshold))
 threshold_algos1 <- df1 %>% filter(!is.na(threshold))
 
-baselines2 <- df2 %>% filter(is.na(threshold))
-threshold_algos2 <- df2 %>% filter(!is.na(threshold))
-
-baselines3 <- df3 %>% filter(is.na(threshold))
-threshold_algos3 <- df3 %>% filter(!is.na(threshold))
-
-baselines4 <- df4 %>% filter(is.na(threshold))
-threshold_algos4 <- df4 %>% filter(!is.na(threshold))
 ```
 
 
 
 ```{r}
 
-plot_metric_vs_threshold <- function(metric, loads_to_show = c(0.5, 0.8, 1.0, 1.2, 1.5)) {
+plot_metric_vs_threshold <- function(metric, loads_to_show = c(0.5, 0.8, 0.9, 1.0, 1.1, 1.2, 1.5)) {
   sub <- threshold_algos1 %>% filter(L %in% loads_to_show)
   base_sub <- baselines1 %>% filter(L %in% loads_to_show)
  
@@ -102,7 +63,7 @@ ggsave("plot_A_matched_rate_vs_threshold.png", width = 10, height = 6, dpi = 150
 
 
 ```{r}
-ggplot(threshold_algos, aes(blocking_pairs, matched_rate, color = family)) +
+ggplot(threshold_algos1, aes(blocking_pairs, matched_rate, color = family)) +
   geom_path(aes(group = interaction(family, L)), alpha = 0.5) +
   geom_point(aes(size = threshold), alpha = 0.7) +
   facet_wrap(~ L, labeller = label_both, scales = "free_x") +
@@ -115,7 +76,7 @@ ggsave("plot_B_tradeoff_frontier.png", width = 12, height = 7, dpi = 150)
 
 
 ```{r}
-ggplot(threshold_algos, aes(threshold, L, fill = blocking_pairs)) +
+ggplot(threshold_algos1, aes(threshold, L, fill = blocking_pairs)) +
   geom_tile() +
   facet_wrap(~ family) +
   scale_fill_viridis_c() +
@@ -123,10 +84,25 @@ ggplot(threshold_algos, aes(threshold, L, fill = blocking_pairs)) +
   theme_minimal()
 ggsave("plot_C_heatmap_shared_scale.png", width = 10, height = 5, dpi = 150)
 ```
+
+
 ```{r}
-plot_metric_vs_threshold <- function(metric, loads_to_show = c(0.5, 0.8, 1.0, 1.2, 1.5)) {
-  sub <- threshold_algos2 %>% filter(L %in% loads_to_show)
-  base_sub <- baselines2 %>% filter(L %in% loads_to_show)
+r1 <- read_csv("results_lowq_rand_basic2.csv") %>%
+  mutate(
+    family = case_when(
+      str_detect(algorithm, "^Online Threshold")   ~ "Online Threshold",
+      TRUE ~ algorithm   # the two baselines keep their own name
+    ),
+    threshold = as.numeric(str_extract(algorithm, "[0-9.]+$"))
+  )
+
+baselinesr1 <- r1 %>% filter(is.na(threshold))
+threshold_algosr1 <- r1 %>% filter(!is.na(threshold))
+
+
+plot_metric_vs_threshold <- function(metric, loads_to_show = c(0.5, 0.8, 0.9, 1.0, 1.1, 1.2, 1.5)) {
+  sub <- threshold_algosr1 %>% filter(L %in% loads_to_show)
+  base_sub <- baselinesr1 %>% filter(L %in% loads_to_show)
  
   ggplot(sub, aes(threshold, .data[[metric]], color = family)) +
     geom_line(linewidth = 1) +
@@ -138,11 +114,9 @@ plot_metric_vs_threshold <- function(metric, loads_to_show = c(0.5, 0.8, 1.0, 1.
     theme_minimal()
 }
 
-plot_metric_vs_threshold("blocking_pairs")
-ggsave("plot_A_blocking_vs_threshold.png", width = 10, height = 6, dpi = 150)
- 
-plot_metric_vs_threshold("matched_rate")
-ggsave("plot_A_matched_rate_vs_threshold.png", width = 10, height = 6, dpi = 150)
 
+plot_metric_vs_threshold("avg_rank")
+plot_metric_vs_threshold("avg_distance")
+plot_metric_vs_threshold("blocking_pairs")
 ```
 
