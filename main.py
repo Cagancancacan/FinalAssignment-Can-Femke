@@ -299,15 +299,15 @@ if __name__ == "__main__":
         algorithms[f"Online Threshold {threshold:.2f}"] = (
             lambda inst, t=threshold: online_threshold(inst, t)
         )
-        algorithms[f"Shrinking Threshold {threshold:.2f}"] = (
-            lambda inst, t=threshold: online_shrinking_capacity(inst, t, power = 1)
-        )
+        #algorithms[f"Shrinking Threshold {threshold:.2f}"] = (
+        #    lambda inst, t=threshold: online_shrinking_capacity(inst, t, power = 1)
+        #)
 
     # Low demand, balanced demand and excess demand
-    loads = [round(i / 10, 2) for i in range(5, 15)]
+    loads = [round(i / 10, 2) for i in range(5, 16)]
     #loads = (0.50, 0.75, 1.00, 1.25, 1.50, 2.00)
 
-    csv_path = "results_lowq_rand__moreload_shrink+basic.csv"
+    csv_path = "results_lowq_rand_basic.csv"
     if os.path.exists(csv_path):
         os.remove(csv_path)  # start each run with a clean file, not stale appended rows
 
