@@ -13,7 +13,7 @@ import os
 # ---------------------------------------------------------------
 # Step 1: the model
 # ---------------------------------------------------------------
-def make_instance(n, q_min, q_max, L, random_prefs=True, t_min=0.05, t_max=0.5, pref_noise=0.3):
+def make_instance(n, q_min, q_max, L, random_prefs=True, pref_noise=0.3):
     """
     n = number of daycares
     q = capacity of every daycare
@@ -195,15 +195,11 @@ def online_threshold(inst, thresh):
 # Step 5: greedy baby + shrinking distance threshold
 # ---------------------------------------------------------------
 def online_shrinking_capacity(inst, thresh, power=1.0):
-    """
-    Same idea as online_greedy_threshold_per_daycare, but a daycare's
-    threshold shrinks as it fills up: it starts lenient (full threshold)
-    and becomes pickier the fewer free spots it has left, only taking
-    unusually close babies near the end.
-
-    power = 1   -> threshold shrinks linearly with remaining capacity
-    power > 1   -> daycare stays lenient for longer, then gets picky fast
-    power < 1   -> daycare gets picky early, then stays strict
+    """Same as online_threshold, but a daycare's threshold shrinks as it fills up: it starts at full threshold and becomes pickier.
+    Cases for power:
+        - power = 1   -> threshold shrinks linearly with remaining capacity
+        - power > 1   -> daycare stays lenient for longer, then gets picky fast
+        - power < 1   -> daycare gets picky early, then stays strict
     """
     n = inst["n"]
     caps = inst["caps"]
@@ -231,7 +227,7 @@ def run_experiment(algorithms, n, q_min, q_max, L, runs=100, random_prefs=True):
     totals = {name: [0, 0, 0, 0, 0] for name in algorithms}
 
     for _ in range(runs):
-        inst = make_instance(n, q_min, q_max, L, random_prefs=random_prefs, t_max=0.5)
+        inst = make_instance(n, q_min, q_max, L, random_prefs=random_prefs)
 
         for name, algo in algorithms.items():
             size, avg_rank, blocking, avg_distance, utilisation = evaluate(inst, algo(inst))
@@ -282,7 +278,7 @@ def run_experiment(algorithms, n, q_min, q_max, L, runs=100, random_prefs=True):
 if __name__ == "__main__":
     random.seed(123)  # Makes the experiment reproducible
 
-    n = 100
+    n = 50
     q_min = 1
     q_max = 25
     runs = 100       # Increase to 1000 for the final experiments
@@ -307,7 +303,7 @@ if __name__ == "__main__":
     loads = [round(i / 10, 2) for i in range(5, 16)]
     #loads = (0.50, 0.75, 1.00, 1.25, 1.50, 2.00)
 
-    csv_path = "results_lowq_rand_basic.csv"
+    csv_path = "results_lowq_rand_basic2.csv"
     if os.path.exists(csv_path):
         os.remove(csv_path)  # start each run with a clean file, not stale appended rows
 
