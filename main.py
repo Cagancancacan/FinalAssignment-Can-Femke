@@ -201,6 +201,7 @@ def run_experiment(algorithms, n, q_min, q_max, L, runs=100, random_prefs=True):
             totals[name][2] += blocking
             totals[name][3] += avg_distance
             totals[name][4] += utilisation
+            totals[name][5] += blocking / inst["m"]
 
     rows = []
     for name in algorithms:
