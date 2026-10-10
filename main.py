@@ -276,12 +276,12 @@ def run_experiment(algorithms, n, q_min, q_max, L, runs=100, random_prefs=True):
             writer.writerows(rows)
 
 if __name__ == "__main__":
-    random.seed(123)  # Makes the experiment reproducible
+    random.seed(333)  # Makes the experiment reproducible
 
     n = 100
     q_min = 1
     q_max = 25
-    runs = 100       # Increase to 1000 for the final experiments
+    runs = 1000       # Increase to 1000 for the final experiments
 
     algorithms = {
          "Baby-oriented Greedy": online_greedy,
@@ -300,10 +300,10 @@ if __name__ == "__main__":
         #)
 
     # Low demand, balanced demand and excess demand
-    loads = [round(i / 10, 2) for i in range(5, 16)]
-    #loads = (0.50, 0.75, 1.00, 1.25, 1.50, 2.00)
+    #loads = [round(i / 10, 2) for i in range(5, 16)] # range of 0.5 to 1.5 in 0.1 intervals
+    loads = [round(i / 10, 2) for i in range(5, 16)] # range of 1.0 to 1.2 in 0.05 intervals
 
-    csv_path = "results_lowq_rand_basic2.csv"
+    csv_path = "results_q_rand_basic_1000.csv"
     if os.path.exists(csv_path):
         os.remove(csv_path)  # start each run with a clean file, not stale appended rows
 
