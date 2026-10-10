@@ -13,18 +13,11 @@ import os
 # ---------------------------------------------------------------
 # Step 1: the model
 # ---------------------------------------------------------------
-def make_instance(n, q_min, q_max, L, random_prefs=True, pref_noise=0.3):
+def make_instance(n, q_min, q_max, L, random_prefs=True):
     """
     n = number of daycares
     q = capacity of every daycare
     L = load (babies / total spots available)
-    pref_noise = only used when random_prefs=False. Standard deviation of
-                 random noise added to distance before sorting, so that
-                 preferences are correlated with distance but not a
-                 perfect sort by it.
-                 0.0  -> preferences are exactly sorted by distance
-                 small (e.g. 0.05) -> mostly distance-sorted, occasional swaps
-                 large (e.g. 1.0+) -> noise drowns out distance, ~random order
     """
     caps = [random.randint(q_min, q_max) for _ in range(n)]
     Q = sum(caps)
@@ -54,7 +47,7 @@ def make_instance(n, q_min, q_max, L, random_prefs=True, pref_noise=0.3):
             order = list(range(n))  # [0, 1, 2, ..., n-1]
             random.shuffle(order)  # put them in a random order
         else:
-            order = sorted(range(n), key=lambda d: dist[b][d] + random.gauss(0, pref_noise))  # we could use this in case the babies preferences are based on distance
+            order = sorted(range(n), key=lambda d: dist[b][d])  # we could use this in case the babies preferences are based on distance
         rank = [0] * n
 
         for position, d in enumerate(order):
@@ -192,35 +185,6 @@ def online_threshold(inst, thresh):
     return match
 
 # ---------------------------------------------------------------
-# Step 5: greedy baby + shrinking distance threshold
-# ---------------------------------------------------------------
-def online_shrinking_capacity(inst, thresh, power=1.0):
-    """Same as online_threshold, but a daycare's threshold shrinks as it fills up: it starts at full threshold and becomes pickier.
-    Cases for power:
-        - power = 1   -> threshold shrinks linearly with remaining capacity
-        - power > 1   -> daycare stays lenient for longer, then gets picky fast
-        - power < 1   -> daycare gets picky early, then stays strict
-    """
-    n = inst["n"]
-    caps = inst["caps"]
-    m = inst["m"]
-    dist = inst["dist"]
-
-    load = [0] * n
-    match = [-1] * m
-
-    for b in range(m):                       # babies arrive one by one
-        for d in inst["baby_order"][b]:      # favorite first
-            if load[d] < caps[d]:
-                remaining_frac = (caps[d] - load[d]) / caps[d]
-                eff_threshold = thresh * (remaining_frac ** power)
-                if dist[b][d] < eff_threshold:
-                    match[b] = d
-                    load[d] += 1
-                    break
-    return match
-
-# ---------------------------------------------------------------
 # Experiment: run many random worlds and take the average
 # ---------------------------------------------------------------
 def run_experiment(algorithms, n, q_min, q_max, L, runs=100, random_prefs=True):
@@ -281,7 +245,7 @@ if __name__ == "__main__":
     n = 100
     q_min = 1
     q_max = 25
-    runs = 1000       # Increase to 1000 for the final experiments
+    runs = 100       # Increase to 1000 for the final experiments
 
     algorithms = {
          "Baby-oriented Greedy": online_greedy,
@@ -295,9 +259,6 @@ if __name__ == "__main__":
         algorithms[f"Online Threshold {threshold:.2f}"] = (
             lambda inst, t=threshold: online_threshold(inst, t)
         )
-        #algorithms[f"Shrinking Threshold {threshold:.2f}"] = (
-        #    lambda inst, t=threshold: online_shrinking_capacity(inst, t, power = 1)
-        #)
 
     # Low demand, balanced demand and excess demand
     #loads = [round(i / 10, 2) for i in range(5, 16)] # range of 0.5 to 1.5 in 0.1 intervals
