@@ -278,7 +278,7 @@ def run_experiment(algorithms, n, q_min, q_max, L, runs=100, random_prefs=True):
 if __name__ == "__main__":
     random.seed(123)  # Makes the experiment reproducible
 
-    n = 50
+    n = 100
     q_min = 1
     q_max = 25
     runs = 100       # Increase to 1000 for the final experiments

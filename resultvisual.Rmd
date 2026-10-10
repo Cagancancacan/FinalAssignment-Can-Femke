@@ -39,7 +39,7 @@ threshold_algos1 <- df1 %>% filter(!is.na(threshold))
 
 ```{r}
 
-plot_metric_vs_threshold <- function(metric, loads_to_show = c(0.5, 0.8, 0.9, 1.0, 1.1, 1.2, 1.5)) {
+plot_metric_vs_threshold <- function(metric, loads_to_show = c(0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5)) {
   sub <- threshold_algos1 %>% filter(L %in% loads_to_show)
   base_sub <- baselines1 %>% filter(L %in% loads_to_show)
  
@@ -99,8 +99,8 @@ r1 <- read_csv("results_lowq_rand_basic2.csv") %>%
 baselinesr1 <- r1 %>% filter(is.na(threshold))
 threshold_algosr1 <- r1 %>% filter(!is.na(threshold))
 
-
-plot_metric_vs_threshold <- function(metric, loads_to_show = c(0.5, 0.8, 0.9, 1.0, 1.1, 1.2, 1.5)) {
+# c(0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5)
+plot_metric_vs_threshold <- function(metric, loads_to_show = c(0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5)) {
   sub <- threshold_algosr1 %>% filter(L %in% loads_to_show)
   base_sub <- baselinesr1 %>% filter(L %in% loads_to_show)
  
@@ -118,5 +118,18 @@ plot_metric_vs_threshold <- function(metric, loads_to_show = c(0.5, 0.8, 0.9, 1.
 plot_metric_vs_threshold("avg_rank")
 plot_metric_vs_threshold("avg_distance")
 plot_metric_vs_threshold("blocking_pairs")
+plot_metric_vs_threshold("matched_rate")
+
+```
+Check difference between n = 100 and n = 50
+
+```{r}
+difference <- threshold_algos1$blocking_pairs - threshold_algosr1$blocking_pairs
+barplot(difference)
+difference <- threshold_algos1$avg_rank - threshold_algosr1$avg_rank
+barplot(difference)
+difference <- threshold_algos1$matched_rate - threshold_algosr1$matched_rate
+barplot(difference)
+
 ```
 
