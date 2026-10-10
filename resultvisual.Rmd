@@ -121,6 +121,87 @@ plot_metric_vs_threshold("blocking_pairs")
 plot_metric_vs_threshold("matched_rate")
 
 ```
+```{r}
+r1 <- read_csv("results_q_rand_basic.csv") %>%
+  mutate(
+    family = case_when(
+      str_detect(algorithm, "^Online Threshold")   ~ "Online Threshold",
+      TRUE ~ algorithm   # the two baselines keep their own name
+    ),
+    threshold = as.numeric(str_extract(algorithm, "[0-9.]+$"))
+  )
+
+baselinesr1 <- r1 %>% filter(is.na(threshold))
+threshold_algosr1 <- r1 %>% filter(!is.na(threshold))
+
+# c(0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5)
+plot_metric_vs_threshold <- function(metric, loads_to_show = c(0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5)) {
+  sub <- threshold_algosr1 %>% filter(L %in% loads_to_show)
+  base_sub <- baselinesr1 %>% filter(L %in% loads_to_show)
+ 
+  ggplot(sub, aes(threshold, .data[[metric]], color = family)) +
+    geom_line(linewidth = 1) +
+    geom_hline(data = base_sub, aes(yintercept = .data[[metric]], linetype = algorithm),
+               color = "grey40") +
+    facet_wrap(~ L, scales = "free_y", labeller = label_both) +
+    labs(title = paste(metric, "vs. threshold, across load levels"),
+         linetype = "Baseline", color = "Algorithm family") +
+    theme_minimal()
+}
+
+
+plot_metric_vs_threshold("avg_rank")
+plot_metric_vs_threshold("avg_distance")
+plot_metric_vs_threshold("blocking_pairs")
+plot_metric_vs_threshold("matched_rate")
+```
+
+
+```{r}
+r1 <- read_csv("results_q_rand_basic_1000.csv") %>%
+  mutate(
+    family = case_when(
+      str_detect(algorithm, "^Online Threshold")   ~ "Online Threshold",
+      TRUE ~ algorithm   # the two baselines keep their own name
+    ),
+    threshold = as.numeric(str_extract(algorithm, "[0-9.]+$"))
+  )
+
+baselinesr1 <- r1 %>% filter(is.na(threshold))
+threshold_algosr1 <- r1 %>% filter(!is.na(threshold))
+
+# c(0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5)
+plot_metric_vs_threshold <- function(metric, loads_to_show = c(0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5)) {
+  sub <- threshold_algosr1 %>% filter(L %in% loads_to_show)
+  base_sub <- baselinesr1 %>% filter(L %in% loads_to_show)
+ 
+  ggplot(sub, aes(threshold, .data[[metric]], color = family)) +
+    geom_line(linewidth = 1) +
+    geom_hline(data = base_sub, aes(yintercept = .data[[metric]], linetype = algorithm),
+               color = "grey40") +
+    facet_wrap(~ L, scales = "free_y", labeller = label_both) +
+    labs(title = paste(metric, "vs. threshold, across load levels"),
+         linetype = "Baseline", color = "Algorithm family") +
+    theme_minimal()
+}
+
+
+plot_metric_vs_threshold("avg_rank")
+plot_metric_vs_threshold("avg_distance")
+plot_metric_vs_threshold("blocking_pairs")
+ggsave("plot_block_random_n1000_q8q25.png", width = 12, height = 7, dpi = 150)
+
+plot_metric_vs_threshold("matched_rate")
+ggsave("plot_random_n1000_q8q25.png", width = 12, height = 7, dpi = 150)
+
+```
+
+```{r}
+
+```
+
+
+
 Check difference between n = 100 and n = 50
 
 ```{r}
