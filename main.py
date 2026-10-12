@@ -52,8 +52,8 @@ def make_instance(n, q_min, q_max, L, random_prefs=True):
 
         for position, d in enumerate(order):
             rank[d] = position + 1
-        baby_order.append(order)  # Lists baby b's daycares from favorite to least favorite
-        baby_rank.append(rank)  # Gives position of daycare d in baby b's ranking (1 is best)
+        baby_order.append(order)  # lists baby b's daycares from favorite to least favorite
+        baby_rank.append(rank)  # gives position of daycare d in baby b's ranking (1 is best)
 
     return {"n": n, "caps": caps, "m": m, "dist": dist,
             "baby_order": baby_order, "baby_rank": baby_rank}
@@ -93,7 +93,7 @@ def evaluate(inst, match):
             load[d] += 1
             worst[d] = max(worst[d], dist[b][d])
 
-    # 3. blocking pairs: baby b and daycare d block if
+    # blocking pairs: baby b and daycare d block if
     #    - b likes d more than her own match (or has no match), AND
     #    - d has a free place, or d likes b more than its farthest baby
     blocking = 0
@@ -148,14 +148,14 @@ def online_daycare_greedy(inst):
         best_daycare = -1
         best_distance = float("inf")
 
-        # Find the closest daycare with a free place
+        # find the closest daycare with a free place
         for d in range(n):
             if load[d] < caps[d]:
                 if dist[b][d] < best_distance:
                     best_daycare = d
                     best_distance = dist[b][d]
 
-        # Assign the baby if a daycare has space
+        # assign the baby if a daycare has space
         if best_daycare != -1:
             match[b] = best_daycare
             load[best_daycare] += 1
@@ -232,6 +232,7 @@ def run_experiment(algorithms, n, q_min, q_max, L, runs=100, random_prefs=True):
             "utilisation": utilisation,
         })
 
+    # record data into .csv
     if csv_path is not None:
         write_header = not os.path.exists(csv_path)
         with open(csv_path, "a", newline="") as f:
@@ -241,34 +242,36 @@ def run_experiment(algorithms, n, q_min, q_max, L, runs=100, random_prefs=True):
             writer.writerows(rows)
 
 if __name__ == "__main__":
-    random.seed(333)  # Makes the experiment reproducible
+    random.seed(333)  # for experiment reproducibility
 
-    n = 100
-    q_min = 1
-    q_max = 25
-    runs = 100       # Increase to 1000 for the final experiments
+    n = 100           # number of daycares
+    q_min = 1         # minimum daycare capacity
+    q_max = 25        # maximum daycare capacity
+    runs = 1000       # 1000 for the final experiments
 
     algorithms = {
          "Baby-oriented Greedy": online_greedy,
          "Daycare-oriented Greedy": online_daycare_greedy
     }
 
-    # We evaluate distance thresholds from 0.05 to 1.00 in increments of 0.05.
-    thresholds = [round(i / 20, 2) for i in range(1, 21)]
+    # we evaluate distance thresholds 
+    thresholds = [round(i / 20, 2) for i in range(1, 21)] # range of 0.05 to 1.00 in intervals of 0.05.
 
     for threshold in thresholds:
         algorithms[f"Online Threshold {threshold:.2f}"] = (
             lambda inst, t=threshold: online_threshold(inst, t)
         )
 
-    # Low demand, balanced demand and excess demand
-    #loads = [round(i / 10, 2) for i in range(5, 16)] # range of 0.5 to 1.5 in 0.1 intervals
-    loads = [round(i / 10, 2) for i in range(5, 16)] # range of 1.0 to 1.2 in 0.05 intervals
+    # low demand, balanced demand, and excess demand
+    loads = [round(i / 10, 2) for i in range(5, 16)] # range of 0.5 to 1.5 in 0.1 intervals
+    #loads = [round(i / 10, 2) for i in range(5, 16)] # range of 1.0 to 1.2 in 0.05 intervals
 
-    csv_path = "results_q_rand_basic_1000.csv"
+    csv_path = "results_lowq_rand_basic_1000.csv"
+
     if os.path.exists(csv_path):
         os.remove(csv_path)  # start each run with a clean file, not stale appended rows
 
+    # run experiment for each load
     for L in loads:
         print(
             f"\nn={n}, q_min={q_min}, q_max={q_max}, "

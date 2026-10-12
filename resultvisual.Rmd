@@ -11,205 +11,24 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## ADM Final Assignment
 
-For visualising the testing results
+by Can Idil and Femke Dhondt.
 
-Visualise data
+R markdown for visualising the testing & simulation results.
+
+# Preparing for data
+
+First we have to import the packages we have use for.
 
 ```{r}
 library(tidyverse)
 library(ggplot2)
 library(patchwork)
 
-df1 <- read_csv("results_lowq_rand_basic_n50_100.csv") %>%
-  mutate(
-    family = case_when(
-      str_detect(algorithm, "^Online Threshold")   ~ "Online Threshold",
-      str_detect(algorithm, "^Shrinking Threshold") ~ "Shrinking Threshold",
-      TRUE ~ algorithm   # the two baselines keep their own name
-    ),
-    threshold = as.numeric(str_extract(algorithm, "[0-9.]+$"))
-  )
-
-baselines1 <- df1 %>% filter(is.na(threshold))
-threshold_algos1 <- df1 %>% filter(!is.na(threshold))
-
 ```
 
-
-
-```{r}
-
-plot_metric_vs_threshold <- function(metric, loads_to_show = c(0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5)) {
-  sub <- threshold_algos1 %>% filter(L %in% loads_to_show)
-  base_sub <- baselines1 %>% filter(L %in% loads_to_show)
- 
-  ggplot(sub, aes(threshold, .data[[metric]], color = family)) +
-    geom_line(linewidth = 1) +
-    geom_hline(data = base_sub, aes(yintercept = .data[[metric]], linetype = algorithm),
-               color = "grey40") +
-    facet_wrap(~ L, scales = "free_y", labeller = label_both) +
-    labs(title = paste(metric, "vs. threshold, across load levels"),
-         linetype = "Baseline", color = "Algorithm family") +
-    theme_minimal()
-}
-
-plot_metric_vs_threshold("blocking_pairs")
-ggsave("plot_A_blocking_vs_threshold.png", width = 10, height = 6, dpi = 150)
- 
-plot_metric_vs_threshold("matched_rate")
-ggsave("plot_A_matched_rate_vs_threshold.png", width = 10, height = 6, dpi = 150)
-
-```
-
+After that, we define a function which will allow us, for the .CSVs our main.py outputs, to plot any given metric against the varying threshold value, across different loads.
 
 ```{r}
-ggplot(threshold_algos1, aes(blocking_pairs, matched_rate, color = family)) +
-  geom_path(aes(group = interaction(family, L)), alpha = 0.5) +
-  geom_point(aes(size = threshold), alpha = 0.7) +
-  facet_wrap(~ L, labeller = label_both, scales = "free_x") +
-  labs(title = "Efficiency frontier: matched rate vs. blocking pairs",
-       subtitle = "each point = one threshold value, connected in increasing order") +
-  theme_minimal()
-ggsave("plot_B_tradeoff_frontier.png", width = 12, height = 7, dpi = 150)
-
-```
-
-
-```{r}
-ggplot(threshold_algos1, aes(threshold, L, fill = blocking_pairs)) +
-  geom_tile() +
-  facet_wrap(~ family) +
-  scale_fill_viridis_c() +
-  labs(title = "Blocking pairs across threshold and load (shared color scale)") +
-  theme_minimal()
-ggsave("plot_C_heatmap_shared_scale.png", width = 10, height = 5, dpi = 150)
-```
-
-
-```{r}
-r1 <- read_csv("results_lowq_rand_basic_n100_100.csv") %>%
-  mutate(
-    family = case_when(
-      str_detect(algorithm, "^Online Threshold")   ~ "Online Threshold",
-      TRUE ~ algorithm   # the two baselines keep their own name
-    ),
-    threshold = as.numeric(str_extract(algorithm, "[0-9.]+$"))
-  )
-
-baselinesr1 <- r1 %>% filter(is.na(threshold))
-threshold_algosr1 <- r1 %>% filter(!is.na(threshold))
-
-# c(0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5)
-plot_metric_vs_threshold <- function(metric, loads_to_show = c(0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5)) {
-  sub <- threshold_algosr1 %>% filter(L %in% loads_to_show)
-  base_sub <- baselinesr1 %>% filter(L %in% loads_to_show)
- 
-  ggplot(sub, aes(threshold, .data[[metric]], color = family)) +
-    geom_line(linewidth = 1) +
-    geom_hline(data = base_sub, aes(yintercept = .data[[metric]], linetype = algorithm),
-               color = "grey40") +
-    facet_wrap(~ L, scales = "free_y", labeller = label_both) +
-    labs(title = paste(metric, "vs. threshold, across load levels"),
-         linetype = "Baseline", color = "Algorithm family") +
-    theme_minimal()
-}
-
-
-plot_metric_vs_threshold("avg_rank")
-plot_metric_vs_threshold("avg_distance")
-plot_metric_vs_threshold("blocking_pairs")
-plot_metric_vs_threshold("matched_rate")
-
-```
-```{r}
-r1 <- read_csv("results_q_rand_basic_n100_100.csv") %>%
-  mutate(
-    family = case_when(
-      str_detect(algorithm, "^Online Threshold")   ~ "Online Threshold",
-      TRUE ~ algorithm   # the two baselines keep their own name
-    ),
-    threshold = as.numeric(str_extract(algorithm, "[0-9.]+$"))
-  )
-
-baselinesr1 <- r1 %>% filter(is.na(threshold))
-threshold_algosr1 <- r1 %>% filter(!is.na(threshold))
-
-# c(0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5)
-plot_metric_vs_threshold <- function(metric, loads_to_show = c(0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5)) {
-  sub <- threshold_algosr1 %>% filter(L %in% loads_to_show)
-  base_sub <- baselinesr1 %>% filter(L %in% loads_to_show)
- 
-  ggplot(sub, aes(threshold, .data[[metric]], color = family)) +
-    geom_line(linewidth = 1) +
-    geom_hline(data = base_sub, aes(yintercept = .data[[metric]], linetype = algorithm),
-               color = "grey40") +
-    facet_wrap(~ L, scales = "free_y", labeller = label_both) +
-    labs(title = paste(metric, "vs. threshold, across load levels"),
-         linetype = "Baseline", color = "Algorithm family") +
-    theme_minimal()
-}
-
-
-plot_metric_vs_threshold("avg_rank")
-plot_metric_vs_threshold("avg_distance")
-plot_metric_vs_threshold("blocking_pairs")
-plot_metric_vs_threshold("matched_rate")
-```
-
-
-```{r}
-r1 <- read_csv("results_q_rand_basic_1000.csv") %>%
-  mutate(
-    family = case_when(
-      str_detect(algorithm, "^Online Threshold")   ~ "Online Threshold",
-      TRUE ~ algorithm   # the two baselines keep their own name
-    ),
-    threshold = as.numeric(str_extract(algorithm, "[0-9.]+$"))
-  )
-
-baselinesr1 <- r1 %>% filter(is.na(threshold))
-threshold_algosr1 <- r1 %>% filter(!is.na(threshold))
-
-# c(0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5)
-plot_metric_vs_threshold <- function(metric, loads_to_show = c(0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5)) {
-  sub <- threshold_algosr1 %>% filter(L %in% loads_to_show)
-  base_sub <- baselinesr1 %>% filter(L %in% loads_to_show)
- 
-  ggplot(sub, aes(threshold, .data[[metric]], color = family)) +
-    geom_line(linewidth = 1) +
-    geom_hline(data = base_sub, aes(yintercept = .data[[metric]], linetype = algorithm),
-               color = "grey40") +
-    facet_wrap(~ L, scales = "free_y", labeller = label_both) +
-    labs(title = paste(metric, "vs. threshold, across load levels"),
-         linetype = "Baseline", color = "Algorithm family") +
-    theme_minimal()
-}
-
-
-plot_metric_vs_threshold("avg_rank")
-plot_metric_vs_threshold("avg_distance")
-
-
-plot_metric_vs_threshold("matched_rate")
-plot_metric_vs_threshold("blocking_pairs")
-ggsave("plot_block_random_n1000_q8q25.png", width = 12, height = 7, dpi = 150)
-
-```
-
-```{r}
-r2 <- read_csv("results_lowq_rand_basic_1000.csv") %>%
-  mutate(
-    family = case_when(
-      str_detect(algorithm, "^Online Threshold")   ~ "Online Threshold",
-      TRUE ~ algorithm   # the two baselines keep their own name
-    ),
-    threshold = as.numeric(str_extract(algorithm, "[0-9.]+$"))
-  )
-
-baselinesr2 <- r2 %>% filter(is.na(threshold))
-threshold_algosr2 <- r2 %>% filter(!is.na(threshold))
-
-# c(0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5)
 plot_metric_vs_threshold <- function(metric, loads_to_show = c(0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5)) {
   sub <- threshold_algosr2 %>% filter(L %in% loads_to_show)
   base_sub <- baselinesr2 %>% filter(L %in% loads_to_show)
@@ -224,39 +43,47 @@ plot_metric_vs_threshold <- function(metric, loads_to_show = c(0.5, 0.6, 0.7, 0.
     theme_minimal()
 }
 
+```
 
+# Prepare the data
+
+We then import our .CSV file and create a family variable that will allow us to group the respective algorithms (for ease of use).
+
+```{r}
+r2 <- read_csv("results_lowq_rand_basic_1000.csv") %>%
+  mutate(
+    family = case_when(
+      str_detect(algorithm, "^Online Threshold")   ~ "Online Threshold",
+      TRUE ~ algorithm   # the two baselines keep their own name
+    ),
+    threshold = as.numeric(str_extract(algorithm, "[0-9.]+$"))
+  )
+
+baselinesr2 <- r2 %>% filter(is.na(threshold))
+threshold_algosr2 <- r2 %>% filter(!is.na(threshold))
+
+```
+
+# Visualise the data
+
+We can now visualise the main metrics we have available to us.
+
+```{r}
 plot_metric_vs_threshold("avg_rank")
+
 plot_metric_vs_threshold("avg_distance")
 
-
 plot_metric_vs_threshold("matched_rate")
+
 plot_metric_vs_threshold("blocking_pairs")
 ggsave("plot_block_random_n1000_q1q25.png", width = 12, height = 7, dpi = 150)
 
 ```
 
-
-
-Check difference between n = 100 and n = 50
+We then observe what the minimum number of blocking pairs is per algorithm, per load; and look at the corresponding distance threshold values for our algorithm.
+We also plot those threshold values against the load values.
 
 ```{r}
-#target_L <- 1.5
-
-#threshold_algosr1 %>%
-#  filter(near(L, target_L)) %>%       # near() avoids floating-point mismatches
-#  filter(blocking_pairs == min(blocking_pairs))
-#
-#threshold_algosr2 %>%
-#  filter(near(L, target_L)) %>%       # near() avoids floating-point mismatches
-#  filter(blocking_pairs == min(blocking_pairs))
-
-optimal_per_load <- threshold_algosr1 %>%
-  group_by(L) %>%
-  slice_min(blocking_pairs, n = 1, with_ties = FALSE) %>%
-  select(L, threshold, blocking_pairs, matched_rate)
-
-optimal_per_load
-
 optimal_per_load <- threshold_algosr2 %>%
   group_by(L) %>%
   slice_min(blocking_pairs, n = 1, with_ties = FALSE) %>%
@@ -270,27 +97,18 @@ ggplot(optimal_per_load, aes(L, threshold)) +
        y = expression(tau^"*"))
 ggsave("plot_block_min_per_load.png", width = 12, height = 7, dpi = 150)
 
-
 ```
 
-```{r}
-ggplot(threshold_algosr1, aes(threshold, blocking_pairs, color = factor(L), group = L)) +
-  geom_line() +
-  geom_point(data = optimal_per_load, aes(threshold, blocking_pairs),
-             color = "black", size = 2) +
-  scale_color_viridis_d(option = "mako")+
-guides(col = guide_legend(reverse = TRUE) )+
-  labs(title = "Blocking pairs vs. threshold, all loads overlaid",
-       subtitle = "black dots mark each load's minimum",
-       color = "L")
+We then make a plot to compare the number of blocking pairs for our algorithm, per load, per threshold. We also include a black dot to show where the respective local minima are for each threshold. 
 
+```{r}
 ggplot(threshold_algosr2, aes(threshold, blocking_pairs, color = factor(L), group = L, linewidth = L)) +
   geom_line() +
   geom_point(data = optimal_per_load, aes(threshold, blocking_pairs),
              color = "black", size = 4, shape = 18) +
   scale_color_viridis_d(option = "C") +
-  scale_linewidth(range = c(0.3: 1.5)) +     # <-- thin for low L, thick for high L
-  guides(linewidth = "none", col=guide_legend(reverse=TRUE)) +               # optional: avoid a redundant second legend
+  scale_linewidth(range = c(0.3: 1.5)) +     # thin for low L, thick for high L
+  guides(linewidth = "none", col=guide_legend(reverse=TRUE)) +               
   labs(title = "Blocking pairs vs. threshold, all loads overlaid",
        subtitle = "black dots mark each load's minimum; thicker line = higher load",
        color = "L")
