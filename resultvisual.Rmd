@@ -74,6 +74,7 @@ plot_metric_vs_threshold("avg_rank")
 plot_metric_vs_threshold("avg_distance")
 
 plot_metric_vs_threshold("matched_rate")
+ggsave("plot_match_random_n1000_q1q25.png", width = 12, height = 7, dpi = 150)
 
 plot_metric_vs_threshold("blocking_pairs")
 ggsave("plot_block_random_n1000_q1q25.png", width = 12, height = 7, dpi = 150)
