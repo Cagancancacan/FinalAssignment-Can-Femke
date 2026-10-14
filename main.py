@@ -185,6 +185,33 @@ def online_threshold(inst, thresh):
     return match
 
 # ---------------------------------------------------------------
+# Step 5: greedy baby + shrinking distance threshold
+# ---------------------------------------------------------------
+def online_shrinking_capacity(inst, thresh, power=1.0):
+    """
+    Same idea as online_threshold, but a daycare's threshold shrinks as it fills up.
+    power = 1   -> threshold shrinks linearly with remaining capacity
+    """
+    n = inst["n"]
+    caps = inst["caps"]
+    m = inst["m"]
+    dist = inst["dist"]
+
+    load = [0] * n
+    match = [-1] * m
+
+    for b in range(m):                       # babies arrive one by one
+        for d in inst["baby_order"][b]:      # favorite first
+            if load[d] < caps[d]:
+                remaining_frac = (caps[d] - load[d]) / caps[d]
+                eff_threshold = thresh * (remaining_frac ** power)
+                if dist[b][d] < eff_threshold:
+                    match[b] = d
+                    load[d] += 1
+                    break
+    return match    
+
+# ---------------------------------------------------------------
 # Experiment: run many random worlds and take the average
 # ---------------------------------------------------------------
 def run_experiment(algorithms, n, q_min, q_max, L, runs=100, random_prefs=True):
@@ -245,8 +272,8 @@ if __name__ == "__main__":
 
     n = 100           # number of daycares
     q_min = 1         # minimum daycare capacity
-    q_max = 16        # maximum daycare capacity
-    runs = 1000       # 1000 for the final experiments
+    q_max = 25        # maximum daycare capacity
+    runs = 500       # 1000 for the final experiments
 
     algorithms = {
          "Baby-oriented Greedy": online_greedy,
@@ -260,12 +287,15 @@ if __name__ == "__main__":
         algorithms[f"Online Threshold {threshold:.2f}"] = (
             lambda inst, t=threshold: online_threshold(inst, t)
         )
+        algorithms[f"Shrinking Threshold {threshold:.2f}"] = (
+            lambda inst, t=threshold: online_shrinking_capacity(inst, t, power = 1)
+        )
 
     # low demand, balanced demand, and excess demand
     loads = [round(i / 10, 2) for i in range(5, 16)] # range of 0.5 to 1.5 in 0.1 intervals
     #loads = [round(i / 10, 2) for i in range(5, 16)] # range of 1.0 to 1.2 in 0.05 intervals
 
-    csv_path = "results_q1q16_rand_basic_1000.csv"
+    csv_path = "results_q1q25_rand_basic+shrink_1000.csv"
 
     if os.path.exists(csv_path):
         os.remove(csv_path)  # start each run with a clean file, not stale appended rows

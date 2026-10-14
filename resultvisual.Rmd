@@ -118,3 +118,131 @@ ggsave("plot_block_min_per_load_comparison.png", width = 12, height = 7, dpi = 1
 
 ```
 
+# Extra testing
+
+Some extra testing to make sure $q_max$ doesn't matter, and to make visuals for the presentation.
+
+First for $q_max = 16$. Just repeat the same process as above.
+
+```{r}
+r3 <- read_csv("results_q1q16_rand_basic_1000.csv") %>%
+  mutate(
+    family = case_when(
+      str_detect(algorithm, "^Online Threshold")   ~ "Online Threshold",
+      TRUE ~ algorithm   # the two baselines keep their own name
+    ),
+    threshold = as.numeric(str_extract(algorithm, "[0-9.]+$"))
+  )
+
+baselinesr3 <- r3 %>% filter(is.na(threshold))
+threshold_algosr3 <- r3 %>% filter(!is.na(threshold))
+
+optimal_per_load <- threshold_algosr3 %>%
+  group_by(L) %>%
+  slice_min(blocking_pairs, n = 1, with_ties = FALSE) %>%
+  select(L, threshold, blocking_pairs, matched_rate)
+
+optimal_per_load
+
+ggplot(optimal_per_load, aes(L, threshold)) +
+  geom_line() + geom_point() +
+  labs(title = "Blocking minimising threshold, per load",
+       y = expression(tau^"*"))
+
+ggplot(threshold_algosr3, aes(threshold, blocking_pairs, color = factor(L), group = L, linewidth = L)) +
+  geom_line() +
+  geom_point(data = optimal_per_load, aes(threshold, blocking_pairs),
+             color = "black", size = 4, shape = 18) +
+  scale_color_viridis_d(option = "C") +
+  scale_linewidth(range = c(0.3: 1.5)) +     # thin for low L, thick for high L
+  guides(linewidth = "none", col=guide_legend(reverse=TRUE)) +               
+  labs(title = "Blocking pairs vs. threshold, all loads overlaid, q_max=16",
+       subtitle = "black dots mark each load's minimum; thicker line = higher load",
+       color = "L")
+
+ggsave("plot_block_min_per_load_comparison_q16.png", width = 12, height = 7, dpi = 150)
+
+
+```
+
+Check for $q_{max}=40$
+
+```{r}
+r4 <- read_csv("results_q1q40_rand_basic_1000.csv") %>%
+  mutate(
+    family = case_when(
+      str_detect(algorithm, "^Online Threshold")   ~ "Online Threshold",
+      TRUE ~ algorithm   # the two baselines keep their own name
+    ),
+    threshold = as.numeric(str_extract(algorithm, "[0-9.]+$"))
+  )
+
+baselinesr4 <- r4 %>% filter(is.na(threshold))
+threshold_algosr4 <- r4 %>% filter(!is.na(threshold))
+
+optimal_per_load <- threshold_algosr4 %>%
+  group_by(L) %>%
+  slice_min(blocking_pairs, n = 1, with_ties = FALSE) %>%
+  select(L, threshold, blocking_pairs, matched_rate)
+
+optimal_per_load
+
+ggplot(optimal_per_load, aes(L, threshold)) +
+  geom_line() + geom_point() +
+  labs(title = "Blocking minimising threshold, per load",
+       y = expression(tau^"*"))
+
+ggplot(threshold_algosr4, aes(threshold, blocking_pairs, color = factor(L), group = L, linewidth = L)) +
+  geom_line() +
+  geom_point(data = optimal_per_load, aes(threshold, blocking_pairs),
+             color = "black", size = 4, shape = 18) +
+  scale_color_viridis_d(option = "C") +
+  scale_linewidth(range = c(0.3: 1.5)) +     # thin for low L, thick for high L
+  guides(linewidth = "none", col=guide_legend(reverse=TRUE)) +               
+  labs(title = "Blocking pairs vs. threshold, all loads overlaid, q_max=40",
+       subtitle = "black dots mark each load's minimum; thicker line = higher load",
+       color = "L")
+
+ggsave("plot_block_min_per_load_comparison_q40.png", width = 12, height = 7, dpi = 150)
+
+
+```
+
+# Extra with Shrinking Threshold
+
+Include shrinking threshold to show poor performance with random preferences.
+
+```{r}
+r5 <- read_csv("results_q1q25_rand_basic+shrink_1000.csv") %>%
+  mutate(
+    family = case_when(
+      str_detect(algorithm, "^Online Threshold")   ~ "Online Threshold",
+      str_detect(algorithm, "^Shrinking Threshold") ~ "Shrinking Threshold",
+      TRUE ~ algorithm   # the two baselines keep their own name
+    ),
+    threshold = as.numeric(str_extract(algorithm, "[0-9.]+$"))
+  )
+
+baselinesr5 <- r5 %>% filter(is.na(threshold))
+threshold_algosr5 <- r5 %>% filter(!is.na(threshold))
+
+optimal_per_load <- threshold_algosr4 %>%
+  group_by(L) %>%
+  slice_min(blocking_pairs, n = 1, with_ties = FALSE) %>%
+  select(L, threshold, blocking_pairs, matched_rate)
+
+optimal_per_load
+
+ggplot(threshold_algosr5, aes(threshold, blocking_pairs, color = factor(L), group = L, linewidth = L)) +
+  geom_line() +
+  geom_point(data = optimal_per_load, aes(threshold, blocking_pairs),
+             color = "black", size = 4, shape = 18) +
+  scale_color_viridis_d(option = "C") +
+  scale_linewidth(range = c(0.3: 1.5)) +     # thin for low L, thick for high L
+  guides(linewidth = "none", col=guide_legend(reverse=TRUE)) +               
+  labs(title = "Blocking pairs vs. threshold, all loads overlaid, q_max=40",
+       subtitle = "black dots mark each load's minimum; thicker line = higher load",
+       color = "L")
+
+```
+
