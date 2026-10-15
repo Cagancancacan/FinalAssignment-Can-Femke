@@ -273,7 +273,7 @@ if __name__ == "__main__":
     n = 100           # number of daycares
     q_min = 1         # minimum daycare capacity
     q_max = 25        # maximum daycare capacity
-    runs = 500       # 1000 for the final experiments
+    runs = 300       # 1000 for the final experiments
 
     algorithms = {
          "Baby-oriented Greedy": online_greedy,
@@ -295,7 +295,7 @@ if __name__ == "__main__":
     loads = [round(i / 10, 2) for i in range(5, 16)] # range of 0.5 to 1.5 in 0.1 intervals
     #loads = [round(i / 10, 2) for i in range(5, 16)] # range of 1.0 to 1.2 in 0.05 intervals
 
-    csv_path = "C:/Users/Can/Desktop/skoel/eor/adm/final assignment/results_q1q25_rand_basic+shrink_1000.csv"
+    csv_path = "results_q1q25_rand_basic+shrink_1000.csv"
 
     if os.path.exists(csv_path):
         os.remove(csv_path)  # start each run with a clean file, not stale appended rows
